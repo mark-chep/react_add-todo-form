@@ -1,45 +1,58 @@
 import { useState } from 'react';
 import './App.scss';
+
 import usersFromServer from './api/users';
 import todosFromServer from './api/todos';
+
 import { TodoList } from './components/TodoList';
+import { Todo } from './types/Todo';
+
+const preparedTodos: Todo[] = todosFromServer.map(todo => ({
+  ...todo,
+  user: usersFromServer.find(user => user.id === todo.userId) || null,
+}));
 
 export const App = () => {
   const [title, setTitle] = useState('');
   const [hasTitleError, setHasTitleError] = useState(false);
+
   const [userId, setUserId] = useState(0);
   const [hasUserIdError, setHasUserIdError] = useState(false);
-  const [todos, setTodos] = useState(todosFromServer);
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
+  const [todos, setTodos] = useState<Todo[]>(preparedTodos);
+
+  const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(event.target.value);
     setHasTitleError(false);
   };
 
-  const handleUserIdChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setUserId(+e.target.value);
+  const handleUserChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setUserId(Number(event.target.value));
     setHasUserIdError(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
 
-    setHasTitleError(!title);
-    setHasUserIdError(!userId);
+    const isTitleEmpty = !title.trim();
+    const isUserEmpty = !userId;
 
-    if (!title || !userId) {
+    setHasTitleError(isTitleEmpty);
+    setHasUserIdError(isUserEmpty);
+
+    if (isTitleEmpty || isUserEmpty) {
       return;
     }
 
     const newTodo = {
-      id: Math.max(...todos.map(t => t.id)) + 1,
+      id: Math.max(...todos.map(todo => todo.id)) + 1,
       title,
       userId,
       completed: false,
-      user: usersFromServer.find(u => u.id === userId),
+      user: usersFromServer.find(user => user.id === userId) || null,
     };
 
-    setTodos(prev => [...prev, newTodo]);
+    setTodos(prevTodos => [...prevTodos, newTodo]);
     setTitle('');
     setUserId(0);
   };
@@ -68,13 +81,13 @@ export const App = () => {
             id="post-user"
             data-cy="userSelect"
             value={userId}
-            onChange={handleUserIdChange}
+            onChange={handleUserChange}
           >
             <option value={0} disabled>
               Choose a user
             </option>
             {usersFromServer.map(user => (
-              <option value={user.id} key={user.id}>
+              <option key={user.id} value={user.id}>
                 {user.name}
               </option>
             ))}
