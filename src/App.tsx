@@ -7,12 +7,15 @@ import todosFromServer from './api/todos';
 import { TodoList } from './components/TodoList';
 import { Todo } from './types/Todo';
 
-const preparedTodos: Todo[] = todosFromServer.map(todo => ({
-  ...todo,
-  user: usersFromServer.find(user => user.id === todo.userId) || null,
-}));
-
 export const App = () => {
+  const getUserById = (id: number) =>
+    usersFromServer.find(user => user.id === id) || null;
+
+  const preparedTodos: Todo[] = todosFromServer.map(todo => ({
+    ...todo,
+    user: getUserById(todo.userId),
+  }));
+
   const [title, setTitle] = useState('');
   const [hasTitleError, setHasTitleError] = useState(false);
 
@@ -44,12 +47,17 @@ export const App = () => {
       return;
     }
 
-    const newTodo = {
-      id: Math.max(...todos.map(todo => todo.id)) + 1,
+    const maxId = todos.reduce(
+      (currentMax, todo) => Math.max(currentMax, todo.id),
+      0,
+    );
+
+    const newTodo: Todo = {
+      id: maxId + 1,
       title,
       userId,
       completed: false,
-      user: usersFromServer.find(user => user.id === userId) || null,
+      user: getUserById(userId),
     };
 
     setTodos(prevTodos => [...prevTodos, newTodo]);
@@ -93,7 +101,7 @@ export const App = () => {
             ))}
           </select>
           {hasUserIdError && (
-            <span className="error">Please choose a user</span>
+            <span className="error"> Please choose a user</span>
           )}
         </div>
 
